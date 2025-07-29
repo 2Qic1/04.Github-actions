@@ -10,12 +10,12 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Check ports
-      run: |
-        echo "Проверка бастиона:"
-        curl -v telnet://${{ secrets.BASTION_IP }}:${{ secrets.BASTION_PORT }}
-        echo "Проверка целевого сервера:"
-        curl -v telnet://${{ secrets.SERVER_IP }}:${{ secrets.SERVER_PORT }}
+ #   - name: Check ports
+  #    run: |
+   #     echo "Проверка бастиона:"
+    #    curl -v telnet://${{ secrets.BASTION_IP }}:${{ secrets.BASTION_PORT }}
+     #   echo "Проверка целевого сервера:"
+      #  curl -v telnet://${{ secrets.SERVER_IP }}:${{ secrets.SERVER_PORT }}
 
     - name: Debug SSH connection
       run: |
