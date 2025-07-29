@@ -1,7 +1,7 @@
 name: Check Pods and Create Folder
 on:
   push:
-    branches: [main]
+    branches: [master]
 jobs:
   build:
     name: build
