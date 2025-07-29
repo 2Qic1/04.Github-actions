@@ -9,6 +9,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Test Bastion Connection
+      run: |
+        echo "Testing connection to ${{ secrets.BASTION_IP }}:${{ secrets.BASTION_PORT }}"
+        nc -zv ${{ secrets.BASTION_IP }} ${{ secrets.BASTION_PORT }} || echo "Connection failed"
     - name: executing remote ssh commands using password
       id: check-pods
       uses: appleboy/ssh-action@v1.2.2
