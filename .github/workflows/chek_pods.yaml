@@ -1,7 +1,7 @@
-name: Check Pods
+name: Check Pods and Create Folder
 on:
   push:
-    branches: [master]
+    branches: [main]
 jobs:
   build:
     name: build
@@ -9,12 +9,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Test Bastion Connection
-      run: |
-        echo "Testing connection to ${{ secrets.BASTION_IP }}:${{ secrets.BASTION_PORT }}"
-        nc -zv ${{ secrets.BASTION_IP }} ${{ secrets.BASTION_PORT }} || echo "Connection failed"
-    - name: executing remote ssh commands using password
-      id: check-pods
+    
+    - name: Execute remote commands
+      id: remote-commands
       uses: appleboy/ssh-action@v1.2.2
       with:
         proxy_host: ${{ secrets.BASTION_IP }}
@@ -26,9 +23,8 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SERVER_PASS }}
         script: |
-          kubectl get pods -A --context='k8s' > output.log
-          echo "crash-pods=$(kubectl get pods -A --context='k8s' | awk 'NR!=1 {print $4}' | grep -v 'Running' | wc -l)" >> $env:GITHUB_OUTPUT
-    - name: Send alert
-      if: steps.pod-check.outputs.crash-pods != '0'
-      run: |
-        echo "ALERT: ${{ steps.pod-check.outputs.crash-pods }} pods crashed!"
+          # Создание папки qwe в корне
+          sudo mkdir -p /qwe
+          sudo chmod 755 /qwe
+          echo "Папка /qwe создана"
+          ls -ld /qwe
