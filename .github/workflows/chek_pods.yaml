@@ -10,6 +10,23 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    - name: Check ports
+      run: |
+        echo "Проверка бастиона:"
+        curl -v telnet://${{ secrets.BASTION_IP }}:${{ secrets.BASTION_PORT }}
+        echo "Проверка целевого сервера:"
+        curl -v telnet://${{ secrets.SERVER_IP }}:${{ secrets.SERVER_PORT }}
+
+    - name: Debug SSH connection
+      run: |
+        echo "Проверка доступа к бастиону:"
+        nc -zv -w 5 ${{ secrets.BASTION_IP }} ${{ secrets.BASTION_PORT }}
+    
+        echo "Проверка маршрута до целевого сервера:"
+        ssh -vvv -J ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_IP }}:${{ secrets.BASTION_PORT }} \
+        ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo Test" || echo "Failed"
+
+
     - name: Execute remote commands
       id: remote-commands
       uses: appleboy/ssh-action@v1.2.2
@@ -22,6 +39,7 @@ jobs:
         port: ${{ secrets.SERVER_PORT }}
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SERVER_PASS }}
+        envs: '-vvv'
         script: |
           # Создание папки qwe в корне
           sudo mkdir -p /qwe
