@@ -1,0 +1,171 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app02-pv-claim
+  labels:
+    app: simple-web
+  annotations:
+    nfs.io/storage-path: "qic_app"
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-app
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app01-pv-claim
+  labels:
+    app: simple-web
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: task-pv-volume
+  labels:
+    type: local
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 100Mi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/opt/mount"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: task-pv-claim
+spec:
+  storageClassName: local-path
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Mi
+  selector:
+    matchLabels:
+      type: local
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-config-env
+data:
+  TEST_ENV: hello
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-config
+data:
+  test.txt: |
+    Hi!!!!!!!22222222@2!!!!!!!!!!!!!
+    I'm here!!!22222222222
+  test-2.txt: |
+    Hi!!!!!!!!!!!!!!!!!!!!!
+    I'm here!!!
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webserver-nginx
+  labels:
+    app: nginx
+spec:
+  replicas: 4
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 51m
+            memory: 50Mi
+          limits:
+            cpu: 100m
+            memory: 100Mi
+        envFrom:
+        - configMapRef:
+            name: test-config-env
+        volumeMounts:
+        - name: test-config-mount
+          mountPath: /tmp/text.txt
+          subPath: test.txt
+        - name: task-pv-storage
+          mountPath: "/data"
+        - name: persistent-storage
+          mountPath: "/nfs_data"
+        - name: persistent-storage-app
+          mountPath: "/usr/share/nginx/html"
+      volumes:
+      - name: test-config-mount
+        configMap:
+          name: test-config
+      - name: task-pv-storage
+        persistentVolumeClaim:
+          claimName: task-pv-claim
+      - name: persistent-storage
+        persistentVolumeClaim:
+          claimName: app01-pv-claim
+      - name: persistent-storage-app
+        persistentVolumeClaim:
+          claimName: app02-pv-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-service
+  labels:
+    run: app-service
+spec:
+  ports:
+  - protocol: TCP
+    port: 80
+  selector:
+    app: nginx
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-sa-nginx
+  annotations:
+    nginx.ingress.kubernetes.io/server-alias: "app.k8s-4.sa"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: app.k8s-3.sa
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: app-service
+                port:
+                  number: 80
